@@ -3,9 +3,7 @@ package com.wxct.cxzx.excel;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.poi.xssf.streaming.SXSSFCell;
 import org.apache.poi.xssf.streaming.SXSSFRow;
@@ -18,175 +16,119 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 public class Excel2007 {
 	/**
-	 * 读取整个sheet的数据
-	 * @param file 文件名
-	 * @param sheetNumber 0开始sheet序号 
-	 * @author zhenr
+	 * 从excel文件中读取某个sheet的完整数据，根据sheet序号
+	 * 读取内容存为Object，读取时可以 instanceof 判断是什么类型
+	 * @param file excel文件路径；sheetIndex 0开始sheet序号
+	 * @return ArrayList<ArrayList<String>> ArrayList嵌套ArrayList，实现二维数组_表结构，ArrayList可保留数据顺序，可以直接根据索引获取:get(0)
 	 * @throws IOException 
 	 * */
-	public static ArrayList<String[]> readSheet(String file,int sheetNumber) throws IOException{
-		ArrayList<String[]> list=new ArrayList<String[]>();				
+	public ArrayList<ArrayList<Object>> readSheet(String file,int sheetIndex) throws IOException {		
+		ArrayList<ArrayList<Object>> sheetValue=new ArrayList<ArrayList<Object>>();
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
-		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);			
-		if(null!=sheet){
-			int rowNum=sheet.getLastRowNum();
-			for(int i=0;i<=rowNum;i++){
-				XSSFRow row = sheet.getRow(i);
-				String[] rowResult=null;
-				if(null!=row){
-					int columnNum=row.getLastCellNum();//列数是实际情况，作为数据index要减1
-					//Data.COLUMNNUM=columnNum;
-					rowResult=new String [columnNum];
-					for(int j=0;j<columnNum;j++){
-						XSSFCell cell=row.getCell(j);
-						if(cell!=null){
-							if(cell.getCellType()==0){
-								DecimalFormat decimalFormat = new DecimalFormat("##0");//double格式化设置,不要科学计数法
-								rowResult[j]=decimalFormat.format(cell.getNumericCellValue());
-							}
-							else if(cell.getCellType()==1){
-								rowResult[j]=cell.getStringCellValue();
-							}
-						}							
-					}
-					list.add(rowResult);
-				}else{
-					//logger.error("row不存在");
-				}				
-			}
-		}else {
-				//logger.error("sheet不存在");
-		}	
-		fileIn.close();
-		workbook.close();
-		return list;
-	}
-	
-	/**
-	 * 读取一行
-	 * 
-	 * */
-	public static String[] readRow(String file,int sheetNumber,int rowNmb) throws IOException{
-		FileInputStream fileIn=new FileInputStream(file);
-		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
-		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
-		if(null!=sheet){
-			XSSFRow row = sheet.getRow(rowNmb);
-			if(null!=row){
-				int columnNum=row.getLastCellNum();//列数是实际情况，作为数据index要减1
-				String []rowResult=new String [columnNum];
-				for(int j=0;j<columnNum;j++){
+		XSSFSheet sheet = workbook.getSheetAt(sheetIndex);
+		if(null==sheet) {
+			workbook.close();
+			fileIn.close();
+			return null;
+		}
+		int rowNum=sheet.getLastRowNum();//rownum 从0开始
+		for(int i=0;i<=rowNum;i++){
+			ArrayList<Object> rowValue=new ArrayList<Object>();
+			XSSFRow row = sheet.getRow(i);
+			if(null!=row) {//行非空
+				int columnNum=row.getLastCellNum();//columnNum 从1开始计数;而XSSFRow.getCell的索引是从0开始的
+				for(int j=0;j<columnNum;j++){//开始读行
 					XSSFCell cell=row.getCell(j);
-					if(cell!=null){
-						if(cell.getCellType()==0){
-							DecimalFormat decimalFormat = new DecimalFormat("##0");//double格式化设置,不要科学计数法
-							rowResult[j]=decimalFormat.format(cell.getNumericCellValue());
+					if(null!=cell) {//单元格非空
+						switch (cell.getCellTypeEnum()) {//根据单元格类型读取
+						case NUMERIC:
+							rowValue.add(cell.getNumericCellValue());
+							break;
+						case STRING:
+							rowValue.add(cell.getStringCellValue());
+							break;
+						case FORMULA://出现公式的时候
+							rowValue.add(cell.getNumericCellValue());
+							break;
+						case BLANK:
+							rowValue.add(null);
+							break;
+						default:
+							rowValue.add(null);
+							break;
 						}
-						else if(cell.getCellType()==1){
-							rowResult[j]=cell.getStringCellValue();
-						}
-					}							
+					}else {//空格，写入null
+						rowValue.add(null);
+					}
 				}
-				workbook.close();
-				return rowResult;
+				sheetValue.add(rowValue);
+			}else {//空行，加入null
+				sheetValue.add(null);
 			}
+			
 		}
 		workbook.close();
-		return null;
+		fileIn.close();
+		return sheetValue;
 	}
 	
 	/**
-	 * 写入整个sheet的数据
-	 * @param file 文件名
-	 * @param sheetNumber 0开始sheet序号 
-	 * @author zhenr
+	 * 从excel文件中读取某个sheet的完整数据，根据sheetName
+	 * 读取内容存为Object，读取时可以 instanceof 判断是什么类型
+	 * @param file excel文件路径；sheetIndex 0开始sheet序号
+	 * @return ArrayList<ArrayList<String>> ArrayList嵌套ArrayList，实现二维数组_表结构，ArrayList可保留数据顺序，可以直接根据索引获取:get(0)
 	 * @throws IOException 
 	 * */
-	public static void writeSheet(List<String[]> list,String file,int sheetNumber) throws IOException{		
+	public ArrayList<ArrayList<Object>> getSheet(String file,String sheetName) throws IOException {
+		ArrayList<ArrayList<Object>> sheetValue=new ArrayList<ArrayList<Object>>();
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
-		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
-		//XSSFCellStyle style=workbook.createCellStyle();
-		//style.setAlignment(XSSFCellStyle.ALIGN_CENTER);//居中
-		if(null==sheet){
-			sheet=workbook.createSheet();
-		}else{
-			workbook.removeSheetAt(sheetNumber);
-			sheet=workbook.createSheet();
+		XSSFSheet sheet = workbook.getSheet(sheetName);
+		if(null==sheet) {
+			workbook.close();
+			fileIn.close();
+			return null;
 		}
-		int rowNum=0;
-		for(String[] value : list){
-			XSSFRow row = sheet.getRow(rowNum);
-			if(null==row){
-				row=sheet.createRow(rowNum);
-			}
-			for(int i=0;i<value.length;i++){
-				if(null!=value[i]){
-					String v=value[i];
-					XSSFCell cell = row.getCell(i);
-					if(null==cell){
-						cell=row.createCell(i);
+		int rowNum=sheet.getLastRowNum();//rownum 从0开始
+		for(int i=0;i<=rowNum;i++){
+			ArrayList<Object> rowValue=new ArrayList<Object>();
+			XSSFRow row = sheet.getRow(i);
+			if(null!=row) {//行非空
+				int columnNum=row.getLastCellNum();//columnNum 从1开始计数;而XSSFRow.getCell的索引是从0开始的
+				for(int j=0;j<columnNum;j++){//开始读行
+					XSSFCell cell=row.getCell(j);
+					if(null!=cell) {//单元格非空
+						switch (cell.getCellTypeEnum()) {//根据单元格类型读取
+						case NUMERIC:
+							rowValue.add(cell.getNumericCellValue());
+							break;
+						case STRING:
+							rowValue.add(cell.getStringCellValue());
+							break;
+						case FORMULA://出现公式的时候
+							rowValue.add(cell.getNumericCellValue());
+							break;
+						case BLANK:
+							rowValue.add(null);
+							break;
+						default:
+							rowValue.add(null);
+							break;
+						}
+					}else {//空格，写入null
+						rowValue.add(null);
 					}
-					cell.setCellValue(v);
 				}
-				//if(null!=style)
-					//cell.setCellStyle(style);
-			}					
-			rowNum++;
-        }				
-		FileOutputStream fileOut = new FileOutputStream(file);
-		workbook.write(fileOut);
+				sheetValue.add(rowValue);
+			}else {//空行，加入null
+				sheetValue.add(null);
+			}
+			
+		}
 		workbook.close();
 		fileIn.close();
-		fileOut.close();		
-	}
-	
-	/**
-	 * 写入整个sheet的数据,写入大数据量
-	 * @param file 文件名
-	 * @param sheetNumber 0开始sheet序号 
-	 * @author zhenr
-	 * @throws IOException 
-	 * */
-	public static void writeSheetBig(List<String[]> list,String file,int sheetNumber) throws IOException{		
-		FileInputStream fileIn=new FileInputStream(file);
-		XSSFWorkbook xworkbook = new XSSFWorkbook(fileIn);
-		SXSSFWorkbook workbook = new SXSSFWorkbook(xworkbook,10000);
-		SXSSFSheet sheet = workbook.getSheetAt(sheetNumber);
-		//XSSFCellStyle style=workbook.createCellStyle();
-		//style.setAlignment(XSSFCellStyle.ALIGN_CENTER);//居中
-		if(null==sheet){
-			sheet=workbook.createSheet();
-		}else{
-			workbook.removeSheetAt(sheetNumber);
-			sheet=workbook.createSheet();
-		}
-		int rowNum=0;
-		for(String[] value : list){
-			SXSSFRow row = sheet.getRow(rowNum);
-			if(null==row){
-				row=sheet.createRow(rowNum);
-			}
-			for(int i=0;i<value.length;i++){
-				if(null!=value[i]){
-					String v=value[i];
-					SXSSFCell cell = row.getCell(i);
-					if(null==cell){
-						cell=row.createCell(i);
-					}
-					cell.setCellValue(v);
-				}
-				//if(null!=style)
-					//cell.setCellStyle(style);
-			}					
-			rowNum++;
-        }				
-		FileOutputStream fileOut = new FileOutputStream(file);
-		workbook.write(fileOut);
-		workbook.close();
-		fileIn.close();
-		fileOut.close();		
+		return sheetValue;
 	}
 	
 	/**
@@ -196,7 +138,7 @@ public class Excel2007 {
 	 * @param rowNum
 	 * @author zhenr
 	 * */
-	public static void removeRow(String file,int sheetNumber,int rowNum) throws IOException{
+	public void removeRow(String file,int sheetNumber,int rowNum) throws IOException{
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -213,26 +155,28 @@ public class Excel2007 {
 	
 	/**
 	 * 获取行数
-	 * 
+	 * rownum 从0开始计数
 	 * */
-	public static int getRowNum(String file,int sheetNumber) throws IOException{
+	public int getRowNum(String file,int sheetNumber) throws IOException{
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
 		if(null!=sheet){
 			workbook.close();
+			fileIn.close();
 			return sheet.getLastRowNum();
 		}else {
 			workbook.close();
+			fileIn.close();
 			return -1;
 		}
 	}
 	
 	/**
 	 * 获取列数
-	 * 
+	 * columnNum 从1开始计数，结果要减一
 	 * */
-	public static int getColumnNum(String file,int sheetNumber) throws IOException{
+	public int getColumnNum(String file,int sheetNumber) throws IOException{
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -240,9 +184,11 @@ public class Excel2007 {
 			XSSFRow row = sheet.getRow(0);
 			if(null!=row){
 				workbook.close();
+				fileIn.close();
 				return row.getLastCellNum();
 			}else {
 				workbook.close();
+				fileIn.close();
 				return -1;
 			}
 		}else {
@@ -250,100 +196,13 @@ public class Excel2007 {
 			return -1;
 		}			
 	}
-///////////////////////////////////////////////////////////////////	容易异常
-	/**
-	 * 读取整个sheet的数据 带格式,返回使用queue，这样就带顺序
-	 * @param file 文件名
-	 * @param sheetNumber 0开始sheet序号 
-	 * @author zhenr
-	 * @throws IOException 
-	 * */
-	public static ArrayList<XSSFCell[]> readSheetWithStyle(String file,int sheetNumber) throws IOException{
-		ArrayList<XSSFCell[]> list=new ArrayList<XSSFCell[]>();				
-		FileInputStream fileIn=new FileInputStream(file);
-		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
-		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);			
-		if(null!=sheet){
-			int rowNum=sheet.getLastRowNum();
-			for(int i=0;i<=rowNum;i++){
-				XSSFRow row = sheet.getRow(i);
-				XSSFCell[] rowResult=null;
-				if(null!=row){
-					int columnNum=row.getLastCellNum();//列数是实际情况，作为数据index要减1
-					//Data.COLUMNNUM=columnNum;
-					rowResult=new XSSFCell [columnNum];
-					for(int j=0;j<columnNum;j++){
-						rowResult[j]=row.getCell(j);
-					}
-					list.add(rowResult);
-				}else{
-					//logger.error("row不存在");
-				}				
-			}
-		}else {
-				//logger.error("sheet不存在");
-		}
-		fileIn.close();
-		workbook.close();
-		return list;
-	}
-	
-	/**
-	 * 写入整个sheet的数据，带格式复制，易超出虚拟机内存,使用queue，这样就带顺序
-	 * @param file 文件名
-	 * @param sheetNumber 0开始sheet序号 
-	 * @author zhenr
-	 * @throws IOException 
-	 * */
-	public static void writeSheetWithStyle(ArrayList<XSSFCell[]> list,String file,int sheetNumber) throws IOException{		
-		FileInputStream fileIn=new FileInputStream(file);
-		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
-		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
-		//XSSFCellStyle style=workbook.createCellStyle();
-		//style.setAlignment(XSSFCellStyle.ALIGN_CENTER);//居中
-		if(null==sheet){
-			sheet=workbook.createSheet();
-		}
-		int rowNum=0;
-		for(XSSFCell[] value : list){
-			if(value!=null) {
-				XSSFRow row = sheet.getRow(rowNum);
-				if(null==row){
-					row=sheet.createRow(rowNum);
-				}
-				for(int i=0;i<value.length;i++){
-					if(null!=value[i]){
-						XSSFCell cell = row.getCell(i);
-						if(null==cell){
-							cell=row.createCell(i);
-						}
-						if(value[i].getCellType()==0){
-							DecimalFormat decimalFormat = new DecimalFormat("##0");//double格式化设置,不要科学计数法
-							cell.setCellValue(decimalFormat.format(value[i].getNumericCellValue()));
-						}
-						else if(value[i].getCellType()==1){
-							cell.setCellValue(value[i].getStringCellValue());
-						}
-						if(null!=value[i].getCellStyle())
-							cell.getCellStyle().cloneStyleFrom(value[i].getCellStyle());
-					}
-				}					
-				rowNum++;
-			}
-        }				
-		FileOutputStream fileOut = new FileOutputStream(file);
-		workbook.write(fileOut);
-		workbook.close();
-		fileIn.close();
-		fileOut.close();	
-	}
 	
 	/**
 	 * 写入数据到一个sheet，从指定起始行、起始列开始写，并使用起始行格式写入
-	 * @param list 需写入的数据，使用Queue类型以保持顺序；file目标文件，sheetNumber 指定sheet号，rowNum 起始行号 0开始，colmunNum 起始列号 0开始
+	 * @param list 需写入的数据，使用ArrayList类型以保持顺序；file目标文件，sheetNumber 指定sheet号，rowNum 起始行号 0开始，colmunNum 起始列号 0开始
 	 * @throws IOException 
 	 * */
-	public static void writeSheet(ArrayList<Object[]> list,String file,int sheetNumber,int rowNum,int colmunNum) throws IOException {
+	public void writeSheet(ArrayList<ArrayList<Object>> list,String file,int sheetNumber,int rowNum,int colmunNum) throws IOException {
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -352,38 +211,26 @@ public class Excel2007 {
 			workbook.close();
 			return;
 		}
-		/*先记录起始行格式
-		XSSFRow startRow = sheet.getRow(rowNum);
-		XSSFCell[] styleRow=null;//每格都放入一个数组
-		if(null!=startRow){
-			int columnNum=startRow.getLastCellNum();//列数是实际情况，作为数据index要减1
-			styleRow=new XSSFCell [columnNum];
-			for(int j=0;j<columnNum;j++){
-				styleRow[j]=startRow.getCell(j);
-			}
-		}
-		*/
-		for(Object[] value : list){
-			if(value!=null) {
+		for(ArrayList<Object> rowValue : list){
+			if(rowValue!=null) {
 				XSSFRow row = sheet.getRow(rowNum);
 				if(null==row){
 					row=sheet.createRow(rowNum);
 				}
 				int column=colmunNum;
-				for(int i=0;i<value.length;i++){
-					if(null!=value[i]){
+				for(Object cellValue : rowValue) {
+					if(null!=cellValue){
 						XSSFCell cell = row.getCell(column);
 						if(null==cell){
-							cell=row.createCell(i);
+							cell=row.createCell(column);
 						}
-						if (value[i] instanceof Integer) {
-							cell.setCellValue(((Integer) value[i]).intValue());
-						}else if (value[i] instanceof Double) {
-							cell.setCellValue(((Double) value[i]).doubleValue());
-						}else if (value[i] instanceof String) {
-							cell.setCellValue((String) value[i]);
+						if (cellValue instanceof Integer) {
+							cell.setCellValue(((Integer) cellValue).intValue());
+						}else if (cellValue instanceof Double) {
+							cell.setCellValue(((Double) cellValue).doubleValue());
+						}else if (cellValue instanceof String) {
+							cell.setCellValue((String) cellValue);
 						}
-						//cell.setCellStyle(styleRow[column].getCellStyle());
 					}
 					column++;
 				}					
@@ -398,10 +245,95 @@ public class Excel2007 {
 	}
 	
 	/**
+	 * 写入大量数据到一个sheet，从指定起始行、起始列开始写，并使用起始行格式写入
+	 * @param list 需写入的数据，使用ArrayList类型以保持顺序；file目标文件，sheetNumber 指定sheet号，rowNum 起始行号 0开始，colmunNum 起始列号 0开始
+	 * @throws IOException 
+	 * */
+	public void writeSheetBig(ArrayList<ArrayList<Object>> list,String file,int sheetNumber,int rowNum,int colmunNum) throws IOException {
+		FileInputStream fileIn=new FileInputStream(file);
+		XSSFWorkbook xworkbook = new XSSFWorkbook(fileIn);
+		SXSSFWorkbook sxworkbook = new SXSSFWorkbook(xworkbook,10000);
+		SXSSFSheet sheet = sxworkbook.getSheetAt(sheetNumber);
+		if(null==sheet){
+			fileIn.close();
+			xworkbook.close();
+			sxworkbook.close();
+			return;
+		}
+		for(ArrayList<Object> rowValue : list){
+			if(rowValue!=null) {
+				SXSSFRow row = sheet.getRow(rowNum);
+				if(null==row){
+					row=sheet.createRow(rowNum);
+				}
+				int column=colmunNum;
+				for(Object cellValue : rowValue) {
+					if(null!=cellValue){
+						SXSSFCell cell = row.getCell(column);
+						if(null==cell){
+							cell=row.createCell(column);
+						}
+						if (cellValue instanceof Integer) {
+							cell.setCellValue(((Integer) cellValue).intValue());
+						}else if (cellValue instanceof Double) {
+							cell.setCellValue(((Double) cellValue).doubleValue());
+						}else if (cellValue instanceof String) {
+							cell.setCellValue((String) cellValue);
+						}
+					}
+					column++;
+				}					
+				rowNum++;
+			}
+        }
+		FileOutputStream fileOut = new FileOutputStream(file);
+		sxworkbook.write(fileOut);		
+		xworkbook.close();
+		sxworkbook.close();
+		fileIn.close();
+		fileOut.close();
+	}
+	
+	/**
+	 * 读取一行，带格式
+	 * @throws IOException 
+	 * */
+	public ArrayList<XSSFCell> getRowWithStyle(String file,int sheetNumber,int rowNum) throws IOException{
+		ArrayList<XSSFCell> resultRow=new ArrayList<XSSFCell>();
+		FileInputStream fileIn=new FileInputStream(file);
+		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
+		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
+		if(null==sheet){
+			fileIn.close();
+			workbook.close();
+			return null;
+		}
+		XSSFRow row = sheet.getRow(rowNum);
+		if(null!=row){
+			int columnNum=row.getLastCellNum();//列数是实际情况，作为数据index要减1
+			for(int j=0;j<columnNum;j++){
+				XSSFCell cell=row.getCell(j);
+				if(cell!=null) {
+					resultRow.add(row.getCell(j));
+				}else {
+					resultRow.add(null);
+				}
+			}
+		}else {
+			fileIn.close();
+			workbook.close();
+			return null;
+		}
+		fileIn.close();
+		workbook.close();
+		return resultRow;
+	}
+	
+	/**
 	 * 设置startRow开始的行的Style为sampleRow的Style,startRowNo开始写的列
 	 * @throws IOException 
 	 * */
-	public static void setStyleFromRow(String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
+	public void setStyleFromRow(String file,int sheetNumber,int startRowNo,ArrayList<XSSFCell> styleRow) throws IOException {
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -409,22 +341,8 @@ public class Excel2007 {
 			fileIn.close();
 			workbook.close();
 			return;
-		}
-		//先记录起始行格式
-		XSSFRow sampleRow = sheet.getRow(sampleRowNo);
-		XSSFCell[] styleRow=null;//每格都放入一个数组
-		if(null!=sampleRow){
-			int columnNum=sampleRow.getLastCellNum();//列数是实际情况，作为数据index要减1
-			styleRow=new XSSFCell [columnNum];
-			for(int j=0;j<columnNum;j++){
-				styleRow[j]=sampleRow.getCell(j);
-			}
-		}else {
-			fileIn.close();
-			workbook.close();
-			return;
-		}
-		if(null!=styleRow&&styleRow.length>0) {
+		}		
+		if(null!=styleRow&&!styleRow.isEmpty()) {
 			int rowNum=sheet.getLastRowNum();
 			for(int i=startRowNo;i<=rowNum;i++){
 				XSSFRow row = sheet.getRow(i);
@@ -435,8 +353,8 @@ public class Excel2007 {
 						if(null==cell){
 							cell=row.createCell(j);
 						}
-						if(null!=styleRow[j]&&null!=styleRow[j].getCellStyle()) {
-							cell.setCellStyle(styleRow[j].getCellStyle());
+						if(null!=styleRow.get(j)&&null!=styleRow.get(j).getCellStyle()) {
+							cell.setCellStyle(styleRow.get(j).getCellStyle());
 						}
 					}
 				}				
@@ -457,8 +375,8 @@ public class Excel2007 {
 	 * 读取某一格内容
 	 * @throws IOException 
 	 * */
-	public static String readCell(String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
-		String result="";
+	public Object readCell(String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
+		Object result="";
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -479,13 +397,22 @@ public class Excel2007 {
 			workbook.close();
 			return null;
 		}
-		
-		if(cell.getCellType()==0){
-			DecimalFormat decimalFormat = new DecimalFormat("##0");//double格式化设置,不要科学计数法
-			result=decimalFormat.format(cell.getNumericCellValue());
-		}
-		else if(cell.getCellType()==1){
+		switch (cell.getCellTypeEnum()) {//根据单元格类型读取
+		case NUMERIC:
+			result=cell.getNumericCellValue();
+			break;
+		case STRING:
 			result=cell.getStringCellValue();
+			break;
+		case FORMULA://出现公式的时候
+			result=cell.getNumericCellValue();
+			break;
+		case BLANK:
+			result=null;
+			break;
+		default:
+			result=null;
+			break;
 		}
 		fileIn.close();
 		workbook.close();
@@ -496,7 +423,7 @@ public class Excel2007 {
 	 * 带格式修改一格
 	 * @throws IOException 
 	 * */
-	public static void editCell(Object value,String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
+	public void editCell(Object value,String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
