@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;  
 import java.io.PrintStream;  
 import java.text.SimpleDateFormat;  
-import java.util.ArrayList;  
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;  
 import java.util.List;  
   
@@ -93,8 +94,8 @@ public class XLSXCovertCSVReader {
   
         // Gathers characters as they are seen.  
         private StringBuffer value;  
-        private String[] record;  
-        private List<String[]> rows = new ArrayList<String[]>();  
+        private Object[] record;  
+        private List<List<Object>> rows = new ArrayList<List<Object>>();  
         private boolean isCellNull = false;  
   
         /** 
@@ -190,7 +191,7 @@ public class XLSXCovertCSVReader {
         public void endElement(String uri, String localName, String name)  
                 throws SAXException {  
   
-            String thisStr = null;  
+            Object thisStr = null;  
   
             // v => contents of a cell  
             if ("v".equals(name)) {  
@@ -245,7 +246,7 @@ public class XLSXCovertCSVReader {
                                 Double.parseDouble(n), this.formatIndex,  
                                 this.formatString);  
                     else  
-                        thisStr = n;  
+                        thisStr = Double.parseDouble(n);  
                     break;  
   
                 default:  
@@ -259,7 +260,7 @@ public class XLSXCovertCSVReader {
                     lastColumnNumber = 0;  
                 }  
                 //判断单元格的值是否为空  
-                if (thisStr == null || "".equals(isCellNull)) {  
+                if (thisStr == null || "".equals(thisStr)) {  
                     isCellNull = true;// 设置单元格是否为空值  
                 } 
                 record[thisColumn] = thisStr;  
@@ -278,7 +279,7 @@ public class XLSXCovertCSVReader {
                     if (isCellNull == false && record[0] != null  
                             && record[1] != null)// 判断是否空行  
                     {  
-                        rows.add(record.clone());  
+                    	rows.add(Arrays.asList(record.clone()));  
                         isCellNull = false;  
                         for (int i = 0; i < record.length; i++) {  
                             record[i] = null;  
@@ -286,15 +287,14 @@ public class XLSXCovertCSVReader {
                     }  
                 }  
                 lastColumnNumber = -1;  
-            }  
-  
+            }
         }  
   
-        public List<String[]> getRows() {  
+        public List<List<Object>> getRows() {  
             return rows;  
         }  
   
-        public void setRows(List<String[]> rows) {  
+        public void setRows(List<List<Object>> rows) {  
             this.rows = rows;  
         }  
   
@@ -364,7 +364,7 @@ public class XLSXCovertCSVReader {
      * @param strings 
      * @param sheetInputStream 
      */  
-    private List<String[]> processSheet(StylesTable styles,  
+    private List<List<Object>> processSheet(StylesTable styles,  
             ReadOnlySharedStringsTable strings, InputStream sheetInputStream)  
             throws IOException, ParserConfigurationException, SAXException {  
   
@@ -387,13 +387,13 @@ public class XLSXCovertCSVReader {
      * @throws ParserConfigurationException 
      * @throws SAXException 
      */  
-    private List<String[]> process() throws IOException, OpenXML4JException,  
+    private List<List<Object>> process() throws IOException, OpenXML4JException,  
             ParserConfigurationException, SAXException {  
   
         ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(  
                 this.xlsxPackage);  
         XSSFReader xssfReader = new XSSFReader(this.xlsxPackage);  
-        List<String[]> list = null;  
+        List<List<Object>> list = null;  
         StylesTable styles = xssfReader.getStylesTable();  
         XSSFReader.SheetIterator iter = (XSSFReader.SheetIterator) xssfReader  
                 .getSheetsData();
@@ -477,13 +477,13 @@ public class XLSXCovertCSVReader {
      * @throws OpenXML4JException 
      * @throws IOException 
      */  
-    public static List<String[]> readerExcel(String path, String sheetName,  
+    public static List<List<Object>> readExcel(String path, String sheetName,  
             int minColumns) throws IOException, OpenXML4JException,  
             ParserConfigurationException, SAXException {  
         OPCPackage p = OPCPackage.open(path, PackageAccess.READ);  
         XLSXCovertCSVReader xlsx2csv = new XLSXCovertCSVReader(p, System.out,  
                 sheetName, minColumns);  
-        List<String[]> list = xlsx2csv.process();  
+        List<List<Object>> list = xlsx2csv.process();  
         p.close();
         return list;  
     }  

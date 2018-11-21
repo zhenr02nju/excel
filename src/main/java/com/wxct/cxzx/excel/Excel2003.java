@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -20,8 +21,8 @@ public class Excel2003 {
 	 * @return ArrayList<ArrayList<String>> ArrayList嵌套ArrayList，实现二维数组_表结构，ArrayList可保留数据顺序，可以直接根据索引获取:get(0)
 	 * @throws IOException 
 	 * */
-	public ArrayList<ArrayList<Object>> readSheet(String file,int sheetIndex) throws IOException {		
-		ArrayList<ArrayList<Object>> sheetValue=new ArrayList<ArrayList<Object>>();
+	public List<List<Object>> readSheet(String file,int sheetIndex) throws IOException {		
+		List<List<Object>> sheetValue=new ArrayList<List<Object>>();
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
 		HSSFSheet sheet = workbook.getSheetAt(sheetIndex);
@@ -32,7 +33,7 @@ public class Excel2003 {
 		}
 		int rowNum=sheet.getLastRowNum();//rownum 从0开始
 		for(int i=0;i<=rowNum;i++){
-			ArrayList<Object> rowValue=new ArrayList<Object>();
+			List<Object> rowValue=new ArrayList<Object>();
 			HSSFRow row = sheet.getRow(i);
 			if(null!=row) {//行非空
 				int columnNum=row.getLastCellNum();//columnNum 从1开始计数;而XSSFRow.getCell的索引是从0开始的
@@ -78,8 +79,8 @@ public class Excel2003 {
 	 * @return ArrayList<ArrayList<String>> ArrayList嵌套ArrayList，实现二维数组_表结构，ArrayList可保留数据顺序，可以直接根据索引获取:get(0)
 	 * @throws IOException 
 	 * */
-	public ArrayList<ArrayList<Object>> getSheet(String file,String sheetName) throws IOException {
-		ArrayList<ArrayList<Object>> sheetValue=new ArrayList<ArrayList<Object>>();
+	public List<List<Object>> getSheet(String file,String sheetName) throws IOException {
+		List<List<Object>> sheetValue=new ArrayList<List<Object>>();
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
 		HSSFSheet sheet = workbook.getSheet(sheetName);
@@ -90,7 +91,7 @@ public class Excel2003 {
 		}
 		int rowNum=sheet.getLastRowNum();//rownum 从0开始
 		for(int i=0;i<=rowNum;i++){
-			ArrayList<Object> rowValue=new ArrayList<Object>();
+			List<Object> rowValue=new ArrayList<Object>();
 			HSSFRow row = sheet.getRow(i);
 			if(null!=row) {//行非空
 				int columnNum=row.getLastCellNum();//columnNum 从1开始计数;而XSSFRow.getCell的索引是从0开始的
@@ -130,11 +131,11 @@ public class Excel2003 {
 	}
 	
 	/**
-	 * 写入数据到一个sheet，从指定起始行、起始列开始写，并使用起始行格式写入
+	 * 写入数据到一个sheet，从指定起始行、起始列开始写
 	 * @param list 需写入的数据，使用ArrayList类型以保持顺序；file目标文件，sheetNumber 指定sheet号，rowNum 起始行号 0开始，colmunNum 起始列号 0开始
 	 * @throws IOException 
 	 * */
-	public void writeSheet(ArrayList<ArrayList<Object>> list,String file,int sheetNumber,int rowNum,int colmunNum) throws IOException {
+	public void writeSheet(List<List<Object>> list,String file,int sheetNumber,int rowNum,int colmunNum) throws IOException {
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
 		HSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -143,7 +144,7 @@ public class Excel2003 {
 			workbook.close();
 			return;
 		}
-		for(ArrayList<Object> rowValue : list){
+		for(List<Object> rowValue : list){
 			if(rowValue!=null) {
 				HSSFRow row = sheet.getRow(rowNum);
 				if(null==row){
@@ -247,8 +248,8 @@ public class Excel2003 {
 	 * 读取一行，带格式
 	 * @throws IOException 
 	 * */
-	public ArrayList<HSSFCell> getRowWithStyle(String file,int sheetNumber,int rowNum) throws IOException{
-		ArrayList<HSSFCell> resultRow=new ArrayList<HSSFCell>();
+	public List<HSSFCell> getRowWithStyle(String file,int sheetNumber,int rowNum) throws IOException{
+		List<HSSFCell> resultRow=new ArrayList<HSSFCell>();
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
 		HSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -282,7 +283,7 @@ public class Excel2003 {
 	 * 设置startRow开始的行的Style为sampleRow的Style,startRowNo开始写的列
 	 * @throws IOException 
 	 * */
-	public void setStyleFromRow(String file,int sheetNumber,int startRowNo,ArrayList<HSSFCell> styleRow) throws IOException {
+	public void setStyleFromRow(String file,int sheetNumber,int startRowNo,List<HSSFCell> styleRow) throws IOException {
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
 		HSSFSheet sheet = workbook.getSheetAt(sheetNumber);
