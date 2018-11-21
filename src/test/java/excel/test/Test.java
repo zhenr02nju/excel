@@ -11,7 +11,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.xml.sax.SAXException;
 
-import com.wxct.cxzx.excel.XLSXCovertCSVReader;
+import com.wxct.cxzx.excel.Excel2007;
 
 /**
  * 2018-11-16 17:13:56
@@ -22,7 +22,7 @@ public class Test {
 	@org.junit.Test
 	public void test() throws IOException, OpenXML4JException, ParserConfigurationException, SAXException {
 		
-		List<List<Object>> list=XLSXCovertCSVReader.readExcel("e://x.xlsx","Sheet1",25);
+		List<List<Object>> list=new Excel2007().readSheet("e://a.xlsx",0);
 		for(List<Object> rowValue : list) {
 			for(Object cell : rowValue) {
 				System.out.println(cell);

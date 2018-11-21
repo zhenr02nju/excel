@@ -42,7 +42,7 @@ public class Excel2007 {
 				for(int j=0;j<columnNum;j++){//开始读行
 					XSSFCell cell=row.getCell(j);
 					if(null!=cell) {//单元格非空
-						switch (cell.getCellTypeEnum()) {//根据单元格类型读取
+						switch (cell.getCellType()) {//根据单元格类型读取
 						case NUMERIC:
 							rowValue.add(cell.getNumericCellValue());
 							break;
@@ -100,7 +100,7 @@ public class Excel2007 {
 				for(int j=0;j<columnNum;j++){//开始读行
 					XSSFCell cell=row.getCell(j);
 					if(null!=cell) {//单元格非空
-						switch (cell.getCellTypeEnum()) {//根据单元格类型读取
+						switch (cell.getCellType()) {//根据单元格类型读取
 						case NUMERIC:
 							rowValue.add(cell.getNumericCellValue());
 							break;
@@ -398,7 +398,7 @@ public class Excel2007 {
 			workbook.close();
 			return null;
 		}
-		switch (cell.getCellTypeEnum()) {//根据单元格类型读取
+		switch (cell.getCellType()) {//根据单元格类型读取
 		case NUMERIC:
 			result=cell.getNumericCellValue();
 			break;

@@ -226,9 +226,9 @@ public class XLSXCovertCSVReader {
                     try {  
                         int idx = Integer.parseInt(sstIndex);  
                         XSSFRichTextString rtss = new XSSFRichTextString(  
-                                sharedStringsTable.getEntryAt(idx));  
+                                sharedStringsTable.getItemAt(idx).getString());  
                         thisStr = rtss.toString();  
-                    } catch (NumberFormatException ex) {  
+                    } catch (NumberFormatException ex) {
                         output.println("Failed to parse SST index '" + sstIndex  
                                 + "': " + ex.toString());  
                     }  
