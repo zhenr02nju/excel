@@ -222,7 +222,7 @@ public class Excel2003 {
 	 * 获取列数
 	 * 
 	 * */
-	public static int getColumnNum(String file,int sheetNumber) throws IOException{
+	public int getColumnNum(String file,int sheetNumber) throws IOException{
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
 		HSSFSheet sheet = workbook.getSheetAt(sheetNumber);
