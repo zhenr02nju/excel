@@ -49,8 +49,12 @@ public class Excel2007 {
 						case STRING:
 							rowValue.add(cell.getStringCellValue());
 							break;
-						case FORMULA://出现公式的时候
-							rowValue.add(cell.getNumericCellValue());
+						case FORMULA://出现公式的时候 公式可计算为数值就直接计算，不可以就保存为公式
+							try {
+								rowValue.add(cell.getNumericCellValue());
+							}catch(IllegalStateException e) {
+								rowValue.add(cell.getStringCellValue());
+							}
 							break;
 						case BLANK:
 							rowValue.add(null);
@@ -81,7 +85,7 @@ public class Excel2007 {
 	 * @return ArrayList<ArrayList<String>> ArrayList嵌套ArrayList，实现二维数组_表结构，ArrayList可保留数据顺序，可以直接根据索引获取:get(0)
 	 * @throws IOException 
 	 * */
-	public List<List<Object>> getSheet(String file,String sheetName) throws IOException {
+	public List<List<Object>> readSheet(String file,String sheetName) throws IOException {
 		List<List<Object>> sheetValue=new ArrayList<List<Object>>();
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
@@ -107,8 +111,12 @@ public class Excel2007 {
 						case STRING:
 							rowValue.add(cell.getStringCellValue());
 							break;
-						case FORMULA://出现公式的时候
-							rowValue.add(cell.getNumericCellValue());
+						case FORMULA://出现公式的时候 公式可计算为数值就直接计算，不可以就保存为公式
+							try {
+								rowValue.add(cell.getNumericCellValue());
+							}catch(IllegalStateException e) {
+								rowValue.add(cell.getStringCellValue());
+							}
 							break;
 						case BLANK:
 							rowValue.add(null);
@@ -131,6 +139,7 @@ public class Excel2007 {
 		fileIn.close();
 		return sheetValue;
 	}
+	
 	
 	/**
 	 * 删除某一行，rowNum是行号-1，2007版的shiftRows，startrow参数需要+1
@@ -374,9 +383,12 @@ public class Excel2007 {
 	
 	/**
 	 * 读取某一格内容
+	 * @param sheetNumber sheet号 从0 开始
+	 * @param RowNo 行号 从0 开始
+	 * @param colummnNo 列号 从0 开始
 	 * @throws IOException 
 	 * */
-	public Object readCell(String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
+	public Object readCell(String file,int sheetNumber,int RowNo,int colummnNo) throws IOException {
 		Object result="";
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
@@ -386,13 +398,13 @@ public class Excel2007 {
 			workbook.close();
 			return null;
 		}
-		XSSFRow row = sheet.getRow(sampleRowNo);
+		XSSFRow row = sheet.getRow(RowNo);
 		if(null==row){
 			fileIn.close();
 			workbook.close();
 			return null;
 		}
-		XSSFCell cell=row.getCell(startRowNo);
+		XSSFCell cell=row.getCell(colummnNo);
 		if(null==cell){
 			fileIn.close();
 			workbook.close();
@@ -421,10 +433,13 @@ public class Excel2007 {
 	}
 	
 	/**
-	 * 带格式修改一格
+	 * 修改一格
+	 * @param sheetNumber sheet号 从0 开始
+	 * @param RowNo 行号 从0 开始
+	 * @param colummnNo 列号 从0 开始
 	 * @throws IOException 
 	 * */
-	public void editCell(Object value,String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
+	public void editCell(Object value,String file,int sheetNumber,int RowNo,int colummnNo) throws IOException {
 		FileInputStream fileIn=new FileInputStream(file);
 		XSSFWorkbook workbook = new XSSFWorkbook(fileIn);
 		XSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -433,17 +448,13 @@ public class Excel2007 {
 			workbook.close();
 			return;
 		}
-		XSSFRow row = sheet.getRow(sampleRowNo);
+		XSSFRow row = sheet.getRow(RowNo);
 		if(null==row){
-			fileIn.close();
-			workbook.close();
-			return;
+			row=sheet.createRow(RowNo);
 		}
-		XSSFCell cell=row.getCell(startRowNo);
+		XSSFCell cell=row.getCell(colummnNo);
 		if(null==cell){
-			fileIn.close();
-			workbook.close();
-			return;
+			cell=row.createCell(colummnNo);
 		}
 		if (value instanceof Integer) {
 			cell.setCellValue(((Integer) value).intValue());

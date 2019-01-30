@@ -18,7 +18,7 @@ import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
 import org.apache.poi.openxml4j.opc.OPCPackage;  
 import org.apache.poi.openxml4j.opc.PackageAccess;  
 import org.apache.poi.ss.usermodel.BuiltinFormats;  
-//import org.apache.poi.ss.usermodel.DataFormatter;  
+import org.apache.poi.ss.usermodel.DataFormatter;  
 import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;  
 import org.apache.poi.xssf.eventusermodel.XSSFReader;  
 import org.apache.poi.xssf.model.StylesTable;  
@@ -32,11 +32,11 @@ import org.xml.sax.helpers.DefaultHandler;
 
 
 /**
- * xlsx大文件转换为csv后再读取，否则会虚拟机堆栈内存溢出
+ * xlsx大文件转换为csv后再读取，读取内容全部以String保存,否则会虚拟机堆栈内存溢出
  * 
  * */
 
-public class XLSXCovertCSVReader {  
+public class XLSXCovertCSVReaderAsString {  
   
     /** 
      * The type of the data value is indicated by an attribute on the cell. The 
@@ -86,7 +86,7 @@ public class XLSXCovertCSVReader {
         // Used to format numeric cell values.  
         private short formatIndex;  
         private String formatString;  
-        //private final DataFormatter formatter;  
+        private final DataFormatter formatter;  
   
         private int thisColumn = -1;  
         // The last column printed to the output stream  
@@ -94,8 +94,8 @@ public class XLSXCovertCSVReader {
   
         // Gathers characters as they are seen.  
         private StringBuffer value;  
-        private Object[] record;  
-        private List<List<Object>> rows = new ArrayList<List<Object>>();  
+        private String[] record;  
+        private List<List<String>> rows = new ArrayList<List<String>>();  
         private boolean isCellNull = false;  
   
         /** 
@@ -118,8 +118,8 @@ public class XLSXCovertCSVReader {
             this.output = target;  
             this.value = new StringBuffer();  
             this.nextDataType = xssfDataType.NUMBER;  
-            //this.formatter = new DataFormatter();  
-            record = new Object[this.minColumnCount];  
+            this.formatter = new DataFormatter();  
+            record = new String[this.minColumnCount];  
             rows.clear();// 每次读取都清空行集合  
         }  
   
@@ -177,7 +177,7 @@ public class XLSXCovertCSVReader {
                     if (this.formatString == null)  
                         this.formatString = BuiltinFormats  
                                 .getBuiltinFormat(this.formatIndex);  
-                }
+                }  
             }  
   
         }  
@@ -191,7 +191,7 @@ public class XLSXCovertCSVReader {
         public void endElement(String uri, String localName, String name)  
                 throws SAXException {  
   
-            Object thisStr = null;  
+            String thisStr = null;  
   
             // v => contents of a cell  
             if ("v".equals(name)) {  
@@ -226,9 +226,9 @@ public class XLSXCovertCSVReader {
                     try {  
                         int idx = Integer.parseInt(sstIndex);  
                         XSSFRichTextString rtss = new XSSFRichTextString(  
-                                sharedStringsTable.getItemAt(idx).getString());  
+                                sharedStringsTable.getItemAt(idx).getString()); 
                         thisStr = rtss.toString();  
-                    } catch (NumberFormatException ex) {
+                    } catch (NumberFormatException ex) {  
                         output.println("Failed to parse SST index '" + sstIndex  
                                 + "': " + ex.toString());  
                     }  
@@ -241,17 +241,12 @@ public class XLSXCovertCSVReader {
                         Double d = Double.parseDouble(n);  
                         Date date=HSSFDateUtil.getJavaDate(d);  
                         thisStr=formateDateToString(date);  
-                    }
-                    /*
-                    else if (this.formatString != null)  {
+                    } else if (this.formatString != null)  
                         thisStr = formatter.formatRawCellContents(  
                                 Double.parseDouble(n), this.formatIndex,  
                                 this.formatString);  
-                        System.out.println(thisStr);
-                    }
-                    */
                     else  
-                        thisStr = Double.parseDouble(n);  
+                        thisStr = n;  
                     break;  
   
                 default:  
@@ -284,7 +279,7 @@ public class XLSXCovertCSVReader {
                     if (isCellNull == false && record[0] != null  
                             && record[1] != null)// 判断是否空行  
                     {  
-                    	rows.add(Arrays.asList(record.clone()));  
+                        rows.add(Arrays.asList(record.clone()));  
                         isCellNull = false;  
                         for (int i = 0; i < record.length; i++) {  
                             record[i] = null;  
@@ -295,11 +290,11 @@ public class XLSXCovertCSVReader {
             }
         }  
   
-        public List<List<Object>> getRows() {  
+        public List<List<String>> getRows() {  
             return rows;  
         }  
   
-        public void setRows(List<List<Object>> rows) {  
+        public void setRows(List<List<String>> rows) {  
             this.rows = rows;  
         }  
   
@@ -353,7 +348,7 @@ public class XLSXCovertCSVReader {
      * @param minColumns 
      *            The minimum number of columns to output, or -1 for no minimum 
      */  
-    public XLSXCovertCSVReader(OPCPackage pkg, PrintStream output,  
+    public XLSXCovertCSVReaderAsString(OPCPackage pkg, PrintStream output,  
             String sheetName, int minColumns) {  
         this.xlsxPackage = pkg;  
         this.output = output;  
@@ -369,7 +364,7 @@ public class XLSXCovertCSVReader {
      * @param strings 
      * @param sheetInputStream 
      */  
-    private List<List<Object>> processSheet(StylesTable styles,  
+    private List<List<String>> processSheet(StylesTable styles,  
             ReadOnlySharedStringsTable strings, InputStream sheetInputStream)  
             throws IOException, ParserConfigurationException, SAXException {  
   
@@ -385,20 +380,20 @@ public class XLSXCovertCSVReader {
     }  
   
     /** 
-      * 初始化这个处理程序 将 
+     * 初始化这个处理程序 将 
      *  
      * @throws IOException 
      * @throws OpenXML4JException 
      * @throws ParserConfigurationException 
      * @throws SAXException 
      */  
-    private List<List<Object>> process() throws IOException, OpenXML4JException,  
+    private List<List<String>> process() throws IOException, OpenXML4JException,  
             ParserConfigurationException, SAXException {  
   
         ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(  
                 this.xlsxPackage);  
         XSSFReader xssfReader = new XSSFReader(this.xlsxPackage);  
-        List<List<Object>> list = null;  
+        List<List<String>> list = null;  
         StylesTable styles = xssfReader.getStylesTable();  
         XSSFReader.SheetIterator iter = (XSSFReader.SheetIterator) xssfReader  
                 .getSheetsData();
@@ -455,7 +450,7 @@ public class XLSXCovertCSVReader {
     public static boolean sheetExist(String path, String sheetName,  int minColumns){  
     	try {
 	    	OPCPackage p = OPCPackage.open(path, PackageAccess.READ);  
-	        XLSXCovertCSVReader xlsx2csv = new XLSXCovertCSVReader(p, System.out,  
+	    	XLSXCovertCSVReaderAsString xlsx2csv = new XLSXCovertCSVReaderAsString(p, System.out,  
 	                sheetName, minColumns);         
 	        boolean re=xlsx2csv.sheetExist(); 
 			p.close();
@@ -482,17 +477,16 @@ public class XLSXCovertCSVReader {
      * @throws OpenXML4JException 
      * @throws IOException 
      */  
-    public static List<List<Object>> readExcel(String path, String sheetName,  
+    public static List<List<String>> readExcel(String path, String sheetName,  
             int minColumns) throws IOException, OpenXML4JException,  
             ParserConfigurationException, SAXException {  
         OPCPackage p = OPCPackage.open(path, PackageAccess.READ);  
-        XLSXCovertCSVReader xlsx2csv = new XLSXCovertCSVReader(p, System.out,  
+        XLSXCovertCSVReaderAsString xlsx2csv = new XLSXCovertCSVReaderAsString(p, System.out,  
                 sheetName, minColumns);  
-        List<List<Object>> list = xlsx2csv.process();  
+        List<List<String>> list = xlsx2csv.process();  
         p.close();
         return list;  
-    }
-    
+    }  
     /*
     public static void main(String[] args) throws Exception {  
         List<String[]> list = XLSXCovertCSVReader  

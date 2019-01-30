@@ -47,8 +47,12 @@ public class Excel2003 {
 						case STRING:
 							rowValue.add(cell.getStringCellValue());
 							break;
-						case FORMULA://出现公式的时候
-							rowValue.add(cell.getNumericCellValue());
+						case FORMULA://出现公式的时候 公式可计算为数值就直接计算，不可以就保存为公式
+							try {
+								rowValue.add(cell.getNumericCellValue());
+							}catch(IllegalStateException e) {
+								rowValue.add(cell.getStringCellValue());
+							}
 							break;
 						case BLANK:
 							rowValue.add(null);
@@ -79,7 +83,7 @@ public class Excel2003 {
 	 * @return ArrayList<ArrayList<String>> ArrayList嵌套ArrayList，实现二维数组_表结构，ArrayList可保留数据顺序，可以直接根据索引获取:get(0)
 	 * @throws IOException 
 	 * */
-	public List<List<Object>> getSheet(String file,String sheetName) throws IOException {
+	public List<List<Object>> readSheet(String file,String sheetName) throws IOException {
 		List<List<Object>> sheetValue=new ArrayList<List<Object>>();
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
@@ -105,8 +109,12 @@ public class Excel2003 {
 						case STRING:
 							rowValue.add(cell.getStringCellValue());
 							break;
-						case FORMULA://出现公式的时候
-							rowValue.add(cell.getNumericCellValue());
+						case FORMULA://出现公式的时候 公式可计算为数值就直接计算，不可以就保存为公式
+							try {
+								rowValue.add(cell.getNumericCellValue());
+							}catch(IllegalStateException e) {
+								rowValue.add(cell.getStringCellValue());
+							}
 							break;
 						case BLANK:
 							rowValue.add(null);
@@ -129,6 +137,8 @@ public class Excel2003 {
 		fileIn.close();
 		return sheetValue;
 	}
+	
+	
 	
 	/**
 	 * 写入数据到一个sheet，从指定起始行、起始列开始写
@@ -373,7 +383,7 @@ public class Excel2003 {
 	 * 带格式修改一格
 	 * @throws IOException 
 	 * */
-	public void editCell(Object value,String file,int sheetNumber,int sampleRowNo,int startRowNo) throws IOException {
+	public void editCell(Object value,String file,int sheetNumber,int RowNo,int columnNo) throws IOException {
 		FileInputStream fileIn=new FileInputStream(file);
 		HSSFWorkbook workbook = new HSSFWorkbook(fileIn);
 		HSSFSheet sheet = workbook.getSheetAt(sheetNumber);
@@ -382,17 +392,13 @@ public class Excel2003 {
 			workbook.close();
 			return;
 		}
-		HSSFRow row = sheet.getRow(sampleRowNo);
+		HSSFRow row = sheet.getRow(RowNo);
 		if(null==row){
-			fileIn.close();
-			workbook.close();
-			return;
+			row=sheet.createRow(RowNo);
 		}
-		HSSFCell cell=row.getCell(startRowNo);
+		HSSFCell cell=row.getCell(columnNo);
 		if(null==cell){
-			fileIn.close();
-			workbook.close();
-			return;
+			cell=row.createCell(columnNo);
 		}
 		if (value instanceof Integer) {
 			cell.setCellValue(((Integer) value).intValue());
